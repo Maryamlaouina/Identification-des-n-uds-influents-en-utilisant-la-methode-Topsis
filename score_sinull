@@ -1,0 +1,141 @@
+import pandas as pd 
+import networkx as nx
+import matplotlib.pyplot as plt
+import numpy as np
+import ndlib.models.ModelConfig as mc
+import ndlib.models.epidemics as ep
+
+k_top10=pd.read_csv("score_karate.csv")
+G= nx.read_edgelist("C:/Users/hp/Downloads/data/data/karateou_zachary.txt", nodetype = int)
+
+def si_model(measure):
+    top=set(k_top10[measure].values.tolist())
+    model = ep.SIModel(G)
+    # Model Configuration
+    cfg = mc.Configuration()
+    cfg.add_model_parameter('beta',1)
+    cfg.add_model_initial_configuration("Infected", top)
+    model.set_initial_status(cfg)
+    iterations = model.iteration_bunch(100)
+    S=[]
+    I=[]
+    it=[]
+    for t in iterations:
+        S.append(t['node_count'][0])
+        I.append(t['node_count'][1])
+        it.append(t['iteration'])
+        if t['node_count'][1]==4039:
+            break
+    row=[it,I,S]
+    return(row)
+
+
+DC=[]
+CC=[]
+BC=[]
+EC=[]
+TOPSIS=[]
+KMEANS=[]
+KMEANS2=[]
+#for i in r
+DC.append(si_model('DC'))
+CC.append(si_model('CC'))
+BC.append(si_model('BC'))
+EC.append(si_model('EC'))
+TOPSIS.append(si_model('TOPSIS'))
+KMEANS.append(si_model('k_means'))
+KMEANS2.append(si_model('k_means with score'))
+
+print(DC)
+
+def Std_mean(lis):
+    dc={}
+    for i in range(1):
+        for j in range(len(lis[i][0])):
+            dc[lis[i][0][j]]=[]
+
+    for i in range(1):
+        for j in range(len(lis[i][0])):
+            dc[lis[i][0][j]].append(lis[i][1][j])
+    return dc
+
+stdsDC=[]
+meansDC=[]
+dc=Std_mean(DC)
+for i in dc:
+    stdsDC.append(np.std(dc[i]))
+    meansDC.append(np.mean(dc[i]))
+
+print(dc)
+
+stdsCC=[]
+meansCC=[]
+d=Std_mean(CC)
+for i in d:
+    stdsCC.append(np.std(d[i]))
+    meansCC.append(np.mean(d[i]))
+
+stdsEC=[]
+meansEC=[]
+d=Std_mean(EC)
+for i in d:
+    stdsEC.append(np.std(d[i]))
+    meansEC.append(np.mean(d[i]))
+
+stdsBC=[]
+meansBC=[]
+d=Std_mean(BC)
+for i in d:
+    stdsBC.append(np.std(d[i]))
+    meansBC.append(np.mean(d[i]))
+
+stdsTOPSIS=[]
+meansTOPSIS=[]
+d=Std_mean(TOPSIS)
+for i in d:
+    stdsTOPSIS.append(np.std(d[i]))
+    meansTOPSIS.append(np.mean(d[i]))
+
+dc=Std_mean(DC)
+cc=Std_mean(CC)
+ec=Std_mean(EC)
+bc=Std_mean(BC)
+topsis=Std_mean(TOPSIS)
+
+
+stdsKMEANS=[]
+meansKMEANS=[]
+d=Std_mean(KMEANS)
+for i in d:
+    stdsKMEANS.append(np.std(d[i]))
+    meansKMEANS.append(np.mean(d[i]))
+    
+
+stdsKMEANS2=[]
+meansKMEANS2=[]
+d=Std_mean(KMEANS2)
+for i in d:
+    stdsKMEANS2.append(np.std(d[i]))
+    meansKMEANS2.append(np.mean(d[i]))
+
+
+dc=Std_mean(DC)
+cc=Std_mean(CC)
+ec=Std_mean(EC)
+bc=Std_mean(BC)
+topsis=Std_mean(TOPSIS)
+kmeans=Std_mean(KMEANS)
+kmeans2=Std_mean(KMEANS2)
+
+fig = plt.subplots(figsize=(15, 9))
+
+plt.plot(sorted(topsis.keys()), meansTOPSIS, label='w_Topsis',c='blue')
+plt.errorbar(topsis.keys(), meansTOPSIS, yerr=stdsTOPSIS, fmt ='.k')
+plt.plot(sorted(kmeans.keys()) , meansKMEANS, label='k_means',c='red')
+plt.errorbar(sorted(kmeans.keys()) , meansKMEANS, yerr=stdsKMEANS, fmt ='.k')
+plt.plot(sorted(kmeans2.keys()) , meansKMEANS2, label='k_means with score',c='green')
+plt.errorbar(sorted(kmeans2.keys()) , meansKMEANS2, yerr=stdsKMEANS2, fmt ='.k')
+plt.title('topsis vs k_kmeans vs k_means whit score')
+
+plt.legend()
+plt.show()

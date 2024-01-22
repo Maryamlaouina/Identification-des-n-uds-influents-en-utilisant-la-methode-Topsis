@@ -1,0 +1,187 @@
+import networkx as nx 
+import numpy as np
+from numpy.linalg import norm
+from  math  import *
+import pandas as pd
+from sklearn.metrics import pairwise_distances_argmin
+from sklearn.metrics import pairwise_distances
+import matplotlib.pyplot as plt
+
+top10= pd.read_csv("top10_result.csv")
+print(top10)
+
+G1=nx.read_edgelist('C:/Users/hp/Downloads/data/data/facebook_combined.txt',create_using=nx.Graph(),nodetype=int)
+
+
+
+k= int(input("donnez un entier k :"))
+
+data=pd.read_csv('w-TOPSIS_fb_t.csv')
+
+print(data)
+
+x=data[["dc","bc","cc","ec"]]
+
+inf10=data.head(k)
+
+print(inf10)
+
+Y=inf10[["dc","bc","cc","ec"]]
+Yrr=Y.to_numpy()
+print(Yrr)
+
+
+def Sn(data ):
+  DC=[]
+  BC=[]
+  CC=[]
+  A=[]
+  DCEb=[]
+
+  DC=data['dc']
+  BC=data['bc']
+  CC=data['cc']
+  for i in range(len(BC)):
+    DCB=(DC[i]*0.3+BC[i]*0.5+CC[i]*0.2)
+    A.append(DCB)
+  return A
+
+
+
+data=pd.read_csv('w-TOPSIS_fb_t.csv')
+SN=Sn(data)
+data['SN']=SN
+
+data.to_csv('moyen_facebook.csv')
+
+print(SN)
+
+
+def kmeans(X, k, maxiter,yrr, seed = None):
+    
+    n_row, n_col = X.shape
+
+    
+    if seed is not None:
+        np.random.seed(seed)
+    
+    rand_indices = np.random.choice(n_row, size = k)
+    centroids =yrr
+
+    for itr in range(maxiter):
+       
+        distances_to_centroids = pairwise_distances(X, centroids, metric = 'euclidean')
+        cluster_assignment = np.argmin(distances_to_centroids, axis = 1)
+
+      
+        new_centroids = np.array([X[cluster_assignment == i].mean(axis = 0) for i in range(k)])
+        
+     
+        if np.all(centroids == new_centroids):
+            break
+        
+        centroids = new_centroids
+    
+    return centroids, cluster_assignment
+
+centers, label = kmeans(x.values,10,20000,Yrr)
+
+print(centers)
+
+def distance_euclidean(data,center,j):
+    T= pd.DataFrame()
+    for i in range(len(data)):
+        distance=sqrt((data['dc'][i]-center[j][0])**2+(data['bc'][i]-center[j][1])**2+
+                           (data['cc'][i]-center[j][2])**2+(data['ec'][i]-center[j][3])**2)
+        T=T.append({'node':data['node'][i], 'cluster':str(j),'distance from center':distance},ignore_index=True)
+    return T.sort_values(by='distance from center')
+
+
+Res1= pd.DataFrame()
+for i in range(k):
+  T=distance_euclidean(data,centers,i)
+  Res1=Res1.append({'cluster':str(i), 'Node_before_KMeans':str(inf10['node'][i]),
+                    'Node_ after _KMeans':int(T.head(1)['node']),
+                    'distance from center':float(T.head(1)['distance from center'])},ignore_index=True)
+
+print(Res1)
+
+
+##########
+
+def dist(SN): # fonction pour calculer la distance  a l'aide des scores
+ dist0=[]
+ ce=[]
+ min = 13000 # 1300 l'inicialisation
+ for i in range(0,10):
+         for j in range(len(SN)):
+           dist=sqrt(pow(SN[i],2)+pow(SN[j],2))
+           dist0.append(dist)
+           A=dist0
+ n=10 
+ B=[A[i:i+n] for i in range(0,len(A),n)]
+ return B
+dst=dist(SN)
+
+print(dst)
+
+dst1= np.asarray(dst)
+
+print(dst1)
+
+def kmeans(X, k, maxiter,yrr,distance,seed = None):
+   
+    n_row, n_col = X.shape
+
+    if seed is not None:
+        np.random.seed(seed)
+    
+    rand_indices = np.random.choice(n_row, size = k)
+    centroids =yrr
+
+    for itr in range(maxiter):
+       
+        distances_to_centroids = distance
+        cluster_assignment = np.argmin(distances_to_centroids, axis = 1)
+
+       
+        new_centroids = np.array([X[cluster_assignment == i].mean(axis = 0) for i in range(k)])
+        
+       
+        if np.all(centroids == new_centroids):
+            break
+        
+        centroids = new_centroids
+    
+    return centroids, cluster_assignment
+
+centroids, cluster_assignment=kmeans(x.values,10,20000,Yrr,dst1)
+
+print(centroids)
+
+def distance_euclidean(data,center,j):
+    T= pd.DataFrame()
+    for i in range(len(data)):
+        distance=sqrt((data['dc'][i]-center[j][0])**2+(data['bc'][i]-center[j][1])**2+
+                           (data['cc'][i]-center[j][2])**2+(data['ec'][i]-center[j][3])**2)
+        T=T.append({'node':data['node'][i], 'cluster':str(j),'distance from center':distance},ignore_index=True)
+    return T.sort_values(by='distance from center')
+
+Res= pd.DataFrame()
+for i in range(k):
+  T=distance_euclidean(data,centroids,i)
+  Res=Res.append({'cluster':str(i), 'Node_before_KMeans':str(inf10['node'][i]),
+                    'Node_ after _KMeans  with score':int(T.head(1)['node']),
+                    'distance from center':float(T.head(1)['distance from center'])},ignore_index=True)
+
+print(Res)
+
+
+top10=pd.read_csv("top10_result.csv")
+
+print(top10)
+top10["k_means"]=Res1["Node_ after _KMeans"].astype(int)
+top10["k_means with score"]=Res["Node_ after _KMeans  with score"].astype(int)
+print(top10)
+
+top10.to_csv("score_facebook.csv")
